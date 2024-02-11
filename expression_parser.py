@@ -193,7 +193,7 @@ class Parser:
 def evaluate_AST(node):
     match node:
         case [Operation.CONST, value]:
-            return lambda x: value
+            return lambda x: np.full_like(x, value)
         
         case [Operation.VARIABLE, _]:
             return lambda x: x

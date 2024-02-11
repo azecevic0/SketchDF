@@ -112,8 +112,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     
     def on_press(self, event):
         ax = event.canvas.figure.axes[0]
-        if event.button == MouseButton.LEFT and not ax.get_navigate_mode() and self.ast:
-            x_data, y_data = event.xdata, event.ydata
+        x_data, y_data = event.xdata, event.ydata
+        if event.button == MouseButton.LEFT and not ax.get_navigate_mode() and self.ast and x_data and y_data:
             self.plots.append((x_data, y_data))
 
             minT, maxT = self._static_ax.get_xlim()
