@@ -12,7 +12,7 @@ def rkNext(x, h, f):
 
 
 
-def RungeKutta(tmin, tmax, ast, t_init, x_init):
+def RungeKutta(tmin, tmax, func, t_init, x_init):
     h = (tmax-tmin) / 1000
 
     
@@ -24,7 +24,7 @@ def RungeKutta(tmin, tmax, ast, t_init, x_init):
     t = t_init + h
     x_last = x_init
     while t < tmax:
-        x_new = rkNext(x_last, h, evaluate_AST(ast))
+        x_new = rkNext(x_last, h, func)
         after.append(x_new)
         t_after.append(t)
 
@@ -35,7 +35,7 @@ def RungeKutta(tmin, tmax, ast, t_init, x_init):
     t = t_init - h
     x_last = x_init
     while t > tmin:
-        x_new = rkNext(x_last, -h, evaluate_AST(ast))
+        x_new = rkNext(x_last, -h, func)
         before.append(x_new)
         t_before.append(t)
 

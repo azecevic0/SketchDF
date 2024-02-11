@@ -2,13 +2,14 @@ import sys
 
 import numpy as np
 
+from matplotlib.backend_bases import MouseEvent, DrawEvent, MouseButton
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.qt_compat import QtWidgets, QtGui
 from matplotlib.figure import Figure
 import expression_parser
-from numeric_methods import *
+from numeric_methods import RungeKutta
 from expression_parser import Parser, evaluate_AST
 
 DEFAULT_XLIM = (-5, 5)
@@ -18,6 +19,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setup_ui()
+        self.ast = None
+        self.func = None
+        self.plots = []
 
     def setup_ui(self):
         # self.resize(800, 800)
@@ -52,7 +56,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._static_ax.set_xlim(DEFAULT_XLIM)
         self._static_ax.set_ylim(DEFAULT_YLIM)
         
-        self.graph_canvas.mpl_connect('button_press_event', lambda event: self.onClick(event))
+        self.graph_canvas.mpl_connect('button_press_event', self.on_press)
+        self.graph_canvas.mpl_connect('button_release_event', self.on_release)
+        
 
         
     def submit(self):
@@ -61,6 +67,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             parser = Parser(formula_string)
             ast = parser.parse()
             self.ast = ast
+            self.func = evaluate_AST(ast)
+            self.plots = []
             #self._static_ax.callbacks.connect("xlim_changed", lambda artist: print("sta"))
         except Exception as e:
  
@@ -76,7 +84,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 15)
         xs = np.linspace(self._static_ax.get_ylim()[0], self._static_ax.get_ylim()[1], 15) 
         
-        ks = evaluate_AST(ast)(xs)
+        ks = self.func(xs)
 
         boundsX = self._static_ax.get_xlim()
         boundsY = self._static_ax.get_ylim()  
@@ -90,29 +98,31 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self._static_ax.plot([ts-delta, ts+delta], [x-delta*k, x+delta*k], '-', color='black')
         self.graph_canvas.draw()
                 
-        #ts = np.linspace(
+    def on_release(self, event):
+        ax = event.canvas.figure.axes[0]
+        if event.button in (MouseButton.LEFT, MouseButton.RIGHT) and ax.get_navigate_mode() and self.ast:
+            self.plot(self.ast)           
+            min_t, max_t = self._static_ax.get_xlim()
+            min_x, max_x = self._static_ax.get_ylim()
 
-    def onZoomChange(self):
-        print("sta")
-        #self.plot( ast)
-    def onClick(self, event):
-        if event.button != 1:
-            return
-        try:
-            x_data, y_data = event.inaxes.transData.inverted().transform((event.x, event.y))
-            if self.ast is None:
-                raise Exception("ast not defined")
-        except Exception as e:
-            return
-        
-        minT, maxT = self._static_ax.get_xlim()
+            for t, x in self.plots:
+                if min_t <= t <= max_t and min_x <= x <= max_x:
+                    ts, xs = RungeKutta(min_t, max_t, self.func, t, x)
+                    self._static_ax.plot(ts, xs, '-', color='red')
+    
+    def on_press(self, event):
+        ax = event.canvas.figure.axes[0]
+        if event.button == MouseButton.LEFT and not ax.get_navigate_mode() and self.ast:
+            x_data, y_data = event.xdata, event.ydata
+            self.plots.append((x_data, y_data))
 
+            minT, maxT = self._static_ax.get_xlim()
 
-        ts, xs = RungeKutta(minT, maxT, self.ast, x_data, y_data)
-        self._static_ax.plot(ts, xs, '-')
-        self.graph_canvas.draw()
-
-        print(x_data, y_data)
+            ts, xs = RungeKutta(minT, maxT, self.func, x_data, y_data)
+            self._static_ax.plot(ts, xs, '-', color='red')
+            self.graph_canvas.draw()
+    
+            print(x_data, y_data)
         
 
 
