@@ -65,11 +65,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         except Exception as e:
  
             print(ast, file=sys.stderr)
-            self.plot(ast)
-        except SyntaxError as e:
             error_message = "Greška u parsiranju: " + str(e)
             QtWidgets.QMessageBox.critical(self, "Neuspešno parsiranje!", error_message,
                                            QtWidgets.QMessageBox.StandardButton.Ok)
+                                        
+            return
+        self.plot(ast)
 
     def plot(self, ast):
         ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 15)
@@ -95,6 +96,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         print("sta")
         #self.plot( ast)
     def onClick(self, event):
+        if event.button != 1:
+            return
         try:
             x_data, y_data = event.inaxes.transData.inverted().transform((event.x, event.y))
             if self.ast is None:
