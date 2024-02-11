@@ -45,6 +45,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         combo_box = QtWidgets.QComboBox()
         combo_box.addItems(['Direction field', 'Slope field'])
         control_layout.addWidget(combo_box)
+        self.combo_box = combo_box
 
         submit_button = QtWidgets.QPushButton('Submit')
         control_layout.addWidget(submit_button)
@@ -92,10 +93,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._static_ax.set_xlim(boundsX)
         self._static_ax.set_ylim(boundsY)
 
+        drawArrows = True if self.combo_box.currentText() == 'Direction field' else False
+
         c = np.sqrt(((boundsX[1] - boundsX[0]) ** 2 + (boundsY[1] - boundsY[0]) ** 2)) / 200
         deltas = np.sqrt(c/(1 + ks**2)) / 2
         for x, k, delta in zip(xs, ks, deltas):
             self._static_ax.plot([ts-delta, ts+delta], [x-delta*k, x+delta*k], '-', color='black')
+
+            if drawArrows:
+                for t in ts:    
+                    self._static_ax.arrow(t-delta, x-delta*k, 2*delta, 2*delta*k,
+                        shape='full', lw=0, length_includes_head=False,
+                        head_width=c, head_length=2*c, color='black')
         self.graph_canvas.draw()
                 
     def on_release(self, event):
