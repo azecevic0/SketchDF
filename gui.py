@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qtagg import \
 from matplotlib.backends.qt_compat import QtWidgets, QtGui
 from matplotlib.figure import Figure
 import expression_parser
+from numeric_methods import *
 
 DEFAULT_XLIM = (-5, 5)
 DEFAULT_YLIM = (-5, 5)
@@ -47,17 +48,19 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         main_layout.addWidget(self.graph_canvas)
 
         self._static_ax = self.graph_canvas.figure.subplots()
-        t = np.linspace(0, 10, 1001)
         self._static_ax.set_xlim(DEFAULT_XLIM)
         self._static_ax.set_ylim(DEFAULT_YLIM)
-        self._static_ax.plot(t, np.tan(t), '-')
+        
+        self.graph_canvas.mpl_connect('button_press_event', lambda event: self.onClick(event))
+
         
     def submit(self):
         formula_string = self.formula_line_edit.text()
         try:
             parser = expression_parser.Parser(formula_string)
             ast = parser.parse()
-            print(ast)
+            self.ast = ast
+            #self._static_ax.callbacks.connect("xlim_changed", lambda artist: print("sta"))
         except Exception as e:
  
             error_message = "Greška u parsiranju: " + str(e)
@@ -79,16 +82,37 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._static_ax.set_ylim(boundsY)
 
 
-        delta = (self._static_ax.get_xlim()[1] - self._static_ax.get_xlim()[0])/50
-        print(delta,self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1])
+        lineLenght = (self._static_ax.get_xlim()[1] - self._static_ax.get_xlim()[0])/50
         for t in ts:
             for i in range(len(xs)):
                 x = xs[i]
                 k = ks[i]
+                delta = (lineLenght**2 / (1 + abs(k**2)))**0.5
                 self._static_ax.plot([t-delta, t+delta], [x-delta*k, x+delta*k], '-')
         self.graph_canvas.draw()
                 
         #ts = np.linspace(
+
+    def onZoomChange(self):
+        print("sta")
+        #self.plot( ast)
+    def onClick(self, event):
+        try:
+            x_data, y_data = event.inaxes.transData.inverted().transform((event.x, event.y))
+            if self.ast is None:
+                raise Exception("ast not defined")
+        except Exception as e:
+            return
+        
+        minT, maxT = self._static_ax.get_xlim()
+
+
+        ts, xs = RungeKutta(minT, maxT, self.ast, x_data, y_data)
+        self._static_ax.plot(ts, xs, '-')
+        self.graph_canvas.draw()
+
+        print(x_data, y_data)
+        
 
 
 
