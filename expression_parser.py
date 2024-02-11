@@ -138,6 +138,7 @@ class Parser:
     
     def __power(self):
         node = self.__factor()
+        
         while self.current_token and self.current_token[0] == Token.POWER:
             self.__consume()
             node = Operation.POWER, node, self.__power()

@@ -67,25 +67,21 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.plot(ast)
 
     def plot(self, ast):
-        ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 20)
-        xs = np.linspace(self._static_ax.get_ylim()[0], self._static_ax.get_ylim()[1], 20) 
+        ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 15)
+        xs = np.linspace(self._static_ax.get_ylim()[0], self._static_ax.get_ylim()[1], 15) 
         
         ks = expression_parser.evaluate_AST(ast)(xs)
 
         boundsX = self._static_ax.get_xlim()
         boundsY = self._static_ax.get_ylim()  
-        self._static_ax.clear() 
+        self._static_ax.clear()
         self._static_ax.set_xlim(boundsX)
         self._static_ax.set_ylim(boundsY)
 
-
-        delta = (self._static_ax.get_xlim()[1] - self._static_ax.get_xlim()[0])/50
-        print(delta,self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1])
-        for t in ts:
-            for i in range(len(xs)):
-                x = xs[i]
-                k = ks[i]
-                self._static_ax.plot([t-delta, t+delta], [x-delta*k, x+delta*k], '-')
+        c = np.sqrt(((boundsX[1] - boundsX[0]) ** 2 + (boundsY[1] - boundsY[0]) ** 2)) / 200
+        deltas = np.sqrt(c/(1 + ks**2)) / 2
+        for x, k, delta in zip(xs, ks, deltas):
+            self._static_ax.plot([ts-delta, ts+delta], [x-delta*k, x+delta*k], '-', color='black')
         self.graph_canvas.draw()
                 
         #ts = np.linspace(
