@@ -93,7 +93,7 @@ class Parser:
     def parse(self):
         ast = self.__expr()
         if self.current_token:
-            raise SyntaxError(f'Expected terminator, got {self.current_token.name}')
+            raise SyntaxError(f'Expected terminator, got {self.current_token[0].name}')
         return ast
 
     def __consume(self):
@@ -101,7 +101,7 @@ class Parser:
 
     def __expect(self, token, msg):
         if self.current_token[0] != token:
-            raise SyntaxError(f'Expected {msg}, got {token.name}')
+            raise SyntaxError(f'Expected {msg}, got {self.current_token[0].name}')
         self.__consume()
 
     def __expr(self):
@@ -138,7 +138,7 @@ class Parser:
     
     def __power(self):
         node = self.__factor()
-        
+
         while self.current_token and self.current_token[0] == Token.POWER:
             self.__consume()
             node = Operation.POWER, node, self.__power()

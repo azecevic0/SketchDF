@@ -7,7 +7,7 @@ from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.qt_compat import QtWidgets, QtGui
 from matplotlib.figure import Figure
-import expression_parser
+from expression_parser import Parser, evaluate_AST
 
 DEFAULT_XLIM = (-5, 5)
 DEFAULT_YLIM = (-5, 5)
@@ -42,7 +42,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
         submit_button = QtWidgets.QPushButton('Submit')
         control_layout.addWidget(submit_button)
-        submit_button.clicked.connect(lambda _: self.submit())
+        submit_button.clicked.connect(self.submit)
         
         main_layout.addWidget(self.graph_canvas)
 
@@ -55,22 +55,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def submit(self):
         formula_string = self.formula_line_edit.text()
         try:
-            parser = expression_parser.Parser(formula_string)
+            parser = Parser(formula_string)
             ast = parser.parse()
-            print(ast)
-        except Exception as e:
- 
+            print(ast, file=sys.stderr)
+            self.plot(ast)
+        except SyntaxError as e:
             error_message = "Greška u parsiranju: " + str(e)
             QtWidgets.QMessageBox.critical(self, "Neuspešno parsiranje!", error_message,
                                            QtWidgets.QMessageBox.StandardButton.Ok)
-            return
-        self.plot(ast)
 
     def plot(self, ast):
         ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 15)
         xs = np.linspace(self._static_ax.get_ylim()[0], self._static_ax.get_ylim()[1], 15) 
         
-        ks = expression_parser.evaluate_AST(ast)(xs)
+        ks = evaluate_AST(ast)(xs)
 
         boundsX = self._static_ax.get_xlim()
         boundsY = self._static_ax.get_ylim()  
@@ -87,7 +85,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #ts = np.linspace(
 
 
-
 if __name__ == "__main__":
     # Check whether there is already a running QApplication (e.g., if running
     # from an IDE).
@@ -100,5 +97,3 @@ if __name__ == "__main__":
     app.activateWindow()
     app.raise_()
     qapp.exec()
-
-
