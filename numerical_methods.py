@@ -1,4 +1,3 @@
-from expression_parser import *
 import numpy as np
 
 
@@ -48,3 +47,32 @@ def RungeKutta(tmin, tmax, func, t_init, x_init):
     before_t_reversed = t_before[::-1]  
     ts = before_t_reversed + [t_init] + t_after
     return (ts , xs)
+
+
+def Euler(tmin, tmax, func, t_init, x_init):
+    h = (tmax-tmin) / 1000
+
+    xs_after = [x_init]
+    ts_after = np.arange(t_init, tmax + h, h)
+    for _ in ts_after:
+        x_n = xs_after[-1]
+        xs_after.append(x_n + func(x_n) * h)
+    
+    xs_before = [x_init]
+    ts_before = np.arange(t_init, tmin - h, -h)
+    for _ in ts_before:
+        x_n = xs_before[-1]
+        xs_before.append(x_n - func(x_n) * h)
+
+    return np.append(ts_before[::-1][:-1], ts_after), xs_before[::-1][1:-1] + xs_after[:-1]
+
+
+class IntegralCurve:
+    def __init__(self, func, t_init, x_init, *, method=RungeKutta):
+        self.func = func
+        self.method = method
+        self.t_init = t_init
+        self.x_init = x_init
+
+    def __call__(self, tmin, tmax):
+        return self.method(tmin, tmax, self.func, self.t_init, self.x_init)

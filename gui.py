@@ -2,14 +2,14 @@ import sys
 
 import numpy as np
 
-from matplotlib.backend_bases import MouseEvent, DrawEvent, MouseButton
+from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qtagg import FigureCanvas
 from matplotlib.backends.backend_qtagg import \
     NavigationToolbar2QT as NavigationToolbar
-from matplotlib.backends.qt_compat import QtWidgets, QtGui
+from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.figure import Figure
-import expression_parser
-from numeric_methods import RungeKutta
+
+from numerical_methods import IntegralCurve, RungeKutta, Euler
 from expression_parser import Parser, evaluate_AST
 
 DEFAULT_XLIM = (-5, 5)
@@ -25,6 +25,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def setup_ui(self):
         # self.resize(800, 800)
+        self.setWindowTitle('SketchDF')
         self.central_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.central_widget)
         main_layout = QtWidgets.QVBoxLayout(self.central_widget)
@@ -33,7 +34,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.toolbar = NavigationToolbar(self.graph_canvas, self)
         main_layout.addWidget(self.toolbar)
 
-        control_layout = QtWidgets.QHBoxLayout(self.central_widget)
+        control_layout = QtWidgets.QHBoxLayout()
         main_layout.addLayout(control_layout)
         
         diff_label = QtWidgets.QLabel("x' = ")
@@ -66,22 +67,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         formula_string = self.formula_line_edit.text()
         try:
             parser = Parser(formula_string)
-            ast = parser.parse()
-            self.ast = ast
-            self.func = evaluate_AST(ast)
+            self.ast = parser.parse()
+            self.func = evaluate_AST(self.ast)
             self.plots = []
-            #self._static_ax.callbacks.connect("xlim_changed", lambda artist: print("sta"))
-        except Exception as e:
- 
-            print(ast, file=sys.stderr)
-            error_message = "Greška u parsiranju: " + str(e)
-            QtWidgets.QMessageBox.critical(self, "Neuspešno parsiranje!", error_message,
+            self.plot_field()
+        except SyntaxError as e:
+            print(self.ast, file=sys.stderr)
+            error_message = f'Syntax error: {e}.'
+            QtWidgets.QMessageBox.critical(self, 'Parsing failure!', error_message,
                                            QtWidgets.QMessageBox.StandardButton.Ok)
                                         
-            return
-        self.plot(ast)
 
-    def plot(self, ast):
+    def plot_field(self):
         ts = np.linspace(self._static_ax.get_xlim()[0], self._static_ax.get_xlim()[1], 15)
         xs = np.linspace(self._static_ax.get_ylim()[0], self._static_ax.get_ylim()[1], 15) 
         
@@ -110,29 +107,30 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def on_release(self, event):
         ax = event.canvas.figure.axes[0]
         if event.button in (MouseButton.LEFT, MouseButton.RIGHT) and ax.get_navigate_mode() and self.ast:
-            self.plot(self.ast)           
+            self.plot_field()           
             min_t, max_t = self._static_ax.get_xlim()
             min_x, max_x = self._static_ax.get_ylim()
 
-            for t, x in self.plots:
-                if min_t <= t <= max_t and min_x <= x <= max_x:
-                    ts, xs = RungeKutta(min_t, max_t, self.func, t, x)
+            for ic in self.plots:
+                if min_t <= ic.t_init <= max_t and min_x <= ic.x_init <= max_x:
+                    ts, xs = ic(min_t, max_t)
                     self._static_ax.plot(ts, xs, '-', color='red')
     
     def on_press(self, event):
         ax = event.canvas.figure.axes[0]
         x_data, y_data = event.xdata, event.ydata
         if event.button == MouseButton.LEFT and not ax.get_navigate_mode() and self.ast and x_data and y_data:
-            self.plots.append((x_data, y_data))
 
             minT, maxT = self._static_ax.get_xlim()
 
-            ts, xs = RungeKutta(minT, maxT, self.func, x_data, y_data)
+            ic = IntegralCurve(self.func, x_data, y_data)
+            self.plots.append(ic)
+
+            ts, xs = ic(minT, maxT)
             self._static_ax.plot(ts, xs, '-', color='red')
             self.graph_canvas.draw()
     
-            print(x_data, y_data)
-        
+            print(f'Initial condition: x({x_data:.2f}) = {y_data:.2f}', file=sys.stderr)
 
 
 if __name__ == "__main__":

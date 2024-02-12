@@ -85,8 +85,9 @@ class Lexer:
 
 
 class Parser:
-    def __init__(self, expression):
+    def __init__(self, expression, *, variable_name='x'):
         self.lexer = Lexer(expression)
+        self.variable_name = variable_name.lower()
         self.current_token = None
         self.__consume()
 
@@ -158,6 +159,8 @@ class Parser:
                 return Operation.CONST, Operation[const.name].value
             
             case [Token.VARIABLE, name]:
+                if name.lower() != self.variable_name:
+                    raise SyntaxError(f'Unexpected variable {self.variable_name}, got {name.lower()}')
                 self.__consume()
                 return Operation.VARIABLE, name
             
