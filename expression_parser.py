@@ -189,8 +189,14 @@ class Parser:
                 self.__expect(Token.RPAREN, f'closing parenthesis after {function.name} argument')
                 return Operation[function.name], expr_node
             
+            case [Token.LPAREN, _]:
+                self.__consume()
+                expr_node = self.__expr()
+                self.__expect(Token.RPAREN, f'closing parenthesis after expression')
+                return expr_node
+
             case _:
-                raise SyntaxError(f'Unexpected token {token}')
+                raise SyntaxError(f'Unexpected token {token.name}')
 
 
 def evaluate_AST(node):
